@@ -1,34 +1,76 @@
-# Brain Tumor Classification using a Convolutional Neural Network
+# Brain Tumor Classification, Detection & Segmentation in MRI Scans
 
-This repository contains a PyTorch implementation of a Convolutional Neural Network (CNN) for multi-class brain tumor classification from MRI scans. The model is trained to distinguish between four different classes: **Glioma**, **Meningioma**, **Pituitary** tumor, and **No Tumor**.
+This repository provides an end-to-end Deep Learning toolkit for brain tumor analysis from MRI scans. It combines three complementary approaches:
+1. **Classification (CNN):** Identifies the type of tumor.
+2. **Object Detection (YOLO11):** Locates tumors with bounding boxes.
+3. **Semantic Segmentation (U-Net):** Delineates the exact shape and contours of the tumor pixel-by-pixel.
 
-## Overview
+---
 
-This project implements a deep learning approach for the classification of brain tumors from MRI images.
+## 1. Multi-Class Classification (CNN)
 
--   **Multi-Class Classification**: A custom CNN is built from scratch and trained to classify MRI images into one of four categories:
-    -  Glioma
-    -  Meningioma
-    -  No Tumor
-    -  Pituitary
--   **Architecture**: The model uses a standard CNN architecture with convolutional layers for feature extraction (enhanced with Batch Normalization and ReLU activations) and fully connected layers for the final classification.
+A custom Convolutional Neural Network built in PyTorch to classify brain MRI scans into four categories:
+* **Glioma**
+* **Meningioma**
+* **Pituitary Tumor**
+* **No Tumor**
 
-## Requirements
-See `requirements.txt` for a full list of dependencies. Main requirements:
-- PyTorch
-- torchvision
-- scikit-learn
-- OpenCV (opencv-python)
-- Matplotlib & Seaborn (for plotting)
-- KaggleHub (for data download)
+The architecture uses consecutive convolutional layers with Batch Normalization, ReLU activations, Dropout, and fully connected layers for the final prediction.
+## 2. Detection (YOLO11)
 
-## Installation
-Follow these steps to set up the project environment.
+---
+
+Trained using Ultralytics YOLO11m to detect and draw bounding boxes around detected tumors.
+**[View project on Comet ML](https://www.comet.com/hasakij/comet-yolo11-mri)**
+
+---
+
+
+## 3. Segmentation (U-Net)
+### Key Features:
+* **Encoder-Decoder Architecture:** Uses skip connections to remember fine boundary details that are usually lost during downsampling.
+* **Balanced Loss Function (BCE + Dice):** Brain tumors often small percenage of the total scan area. A hybrid loss with positive class weighting (`pos_weight = 5.0`) prevents the model from ignoring small tumors.
+* **Data Augmentation:** Real-time spatial rotations and flips using `Albumentations` prevent overfitting.
+* **Hardware Optimized:** Uses Automatic Mixed Precision (AMP FP16)
+
+### U-Net Results & Visual Showcase
+
+![Visual Showcase](results/monai_unet_evaluation_overlay.png)
+
+*Figure 1: Original MRI scans (FLAIR), true doctor annotations, U-Net predictions, and colored overlays.*
+
+![Metrics Bar Chart](results/metrics_summary_unet.png)
+
+*Figure 2: Clinical evaluation metrics on hold-out validation data.*
+
+| Metric | Score | Explanation |
+| :--- | :---: | :--- |
+| **Dice Score (All Slices)** | **84.0%** | Overall overlap agreement between AI and doctor annotations |
+| **Dice Score (Tumor Only)** | **75.8%** | Accuracy strictly on scans where a tumor is present |
+| **IoU (Jaccard Index)** | **72.5%** | Area of overlap divided by area of union |
+| **Recall (Sensitivity)** | **84.3%** | How much of the true tumor tissue was detected (low false negative rate) |
+| **Precision** | **83.8%** | How confident the model is when it flags an area as tumor |
+| **Specificity** | **99.8%** | Accuracy in recognizing healthy brain tissue |
+| **MONAI HD95** | **16.5 px** | Boundary contour distance error|
+
+---
+## Requirements & Installation
+
+### Main Dependencies
+* PyTorch & torchvision (CUDA recommended)
+* MONAI (Medical Open Network for AI)
+* Albumentations (Data Augmentation)
+* Ultralytics (YOLO)
+* OpenCV & NumPy
+* Matplotlib & Seaborn
+* Comet ML
+
+### Setup Instructions
 
 1.  **Clone the repository:**
     ```bash
-    git clone https://github.com/YOUR_USERNAME/CNN-Tumor-Detection.git
-    cd CNN-Tumor-Detection
+    git clone https://github.com/YOUR_USERNAME/Brain-Tumor-MRI-Analysis.git
+    cd Brain-Tumor-MRI-Analysis
     ```
 
 2.  **(Recommended) Create and activate a virtual environment:**
@@ -54,37 +96,47 @@ Follow these steps to set up the project environment.
 
 ## Usage
 
-To train the model and generate evaluation results, run the main script:
+## Run Classification (CNN):
 ```bash
 python train.py
 ```
 
-## Training the YOLO Model
+## Run Object Detection (YOLO):
 
-To train the model, first run the script to organize the dataset into YOLO format:
+Organize the dataset and start YOLO training:
 ```bash
 python organize_data.py
-```
-
-After the dataset is ready, start the training
-```bash
 python train_yolo.py
 ```
-## Training Results
 
-Live results, charts, and metrics for this model are tracked using Comet ML.
+## Run Segmentation (U-Net)
+```bash
+python train_unet.py
+```
 
-**[View project on Comet ML](https://www.comet.com/hasakij/comet-yolo11-mri)**
+Evaluate the best model and generate visual prediction plots:
+```bash
+python evaluate_unet.py
+```
+
 ## Project Structure
 ```
-CNN-Tumor-Detection/
+Brain-Tumor-MRI-Analysis/
 ├── README.md           # Project documentation
 ├── requirements.txt    # Python dependencies
 ├── LICENSE             # MIT License
+|
 ├── train.py            # Training script for CNN model
 ├── organize_data.py    # Organizes data for YOLO format
 ├── train_yolo.py       # Training the YOLO model
-└── .gitignore          # Git ignore patterns
+│
+├── dataset_unet.py           # PyTorch Dataset with Albumentations for MRI
+├── unet_model.py             # Custom U-Net architecture from scratch
+├── train_unet.py             # Training pipeline with AMP and Early Stopping
+├── evaluate_unet.py          # Clinical evaluation with MONAI metrics
+│
+├── results/                  # Generated comparison plots and metric charts
+└── best_unet.pth             # Saved weights of the best U-Net model
 ```
 
 ## License
